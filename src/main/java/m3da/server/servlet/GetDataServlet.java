@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import m3da.server.store.Data;
+import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
 import org.slf4j.Logger;
@@ -35,10 +35,10 @@ public class GetDataServlet extends HttpServlet {
 
         system = system.substring(1);
         LOG.info("system " + system);
-        List<Data> data;
+        List<Message> data;
         while ((data = store.popData(system)) != null) {
             resp.getWriter().write("data: ");
-            for (Data d : data) {
+            for (Message d : data) {
                 LOG.info("data: " + d);
                 resp.getWriter().write(d + "\n");
             }

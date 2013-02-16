@@ -9,7 +9,7 @@ import org.mapdb.DBMaker;
 
 public class MapDbStoreService implements StoreService {
 
-    private BTreeMap<String, List<Data>> data;
+    private BTreeMap<String, List<Message>> data;
 
     private DB db;
 
@@ -24,13 +24,13 @@ public class MapDbStoreService implements StoreService {
     }
 
     @Override
-    public void enqueueData(String systemId, long reception, List<Data> newData) {
+    public void enqueueData(String systemId, long reception, List<Message> newData) {
         data.put(systemId + "#" + reception, newData);
 
     }
 
     @Override
-    public List<Data> popData(String systemId) {
+    public List<Message> popData(String systemId) {
         String key = data.higherKey(systemId + "#");
         if (key != null && key.startsWith(systemId + "#")) {
             return data.remove(key);

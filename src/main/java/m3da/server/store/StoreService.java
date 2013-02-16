@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface StoreService {
 
-    public void enqueueData(String systemId, long reception, List<Data> newData);
+    public void enqueueData(String systemId, long reception, List<Message> newData);
 
-    public List<Data> popData(String systemId);
+    public List<Message> popData(String systemId);
 }

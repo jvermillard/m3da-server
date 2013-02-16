@@ -1,36 +1,31 @@
 package m3da.server.store;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
-public class Data implements Serializable {
+public class Message implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public Data(String path, Map<Object, Object> data) {
+    /** path */
+    private final String path;
+
+    /** associated data */
+    private final Map<String, List<?>> data;
+
+    public Message(String path, Map<String, List<?>> data) {
         super();
         this.path = path;
         this.data = data;
     }
 
-    private String path;
-
-    private Map<Object, Object> data;
-
     public String getPath() {
         return path;
     }
 
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public Map<Object, Object> getData() {
+    public Map<String, List<?>> getData() {
         return data;
-    }
-
-    public void setData(Map<Object, Object> data) {
-        this.data = data;
     }
 
     @Override

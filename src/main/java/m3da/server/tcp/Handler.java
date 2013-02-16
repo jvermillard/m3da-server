@@ -4,9 +4,12 @@ import static org.apache.commons.io.Charsets.UTF_8;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import m3da.server.store.Data;
+import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
 import org.apache.mina.core.service.IoHandlerAdapter;
@@ -20,9 +23,11 @@ import com.sierrawireless.airvantage.tech.awtda3codec.AwtDa3CodecService;
 import com.sierrawireless.airvantage.tech.awtda3codec.BysantDecoder;
 import com.sierrawireless.airvantage.tech.awtda3codec.DecoderOutput;
 import com.sierrawireless.airvantage.tech.awtda3codec.HeaderKey;
+import com.sierrawireless.airvantage.tech.awtda3codec.dto.AwtDa3DeltasVector;
 import com.sierrawireless.airvantage.tech.awtda3codec.dto.AwtDa3Envelope;
 import com.sierrawireless.airvantage.tech.awtda3codec.dto.AwtDa3Message;
 import com.sierrawireless.airvantage.tech.awtda3codec.dto.AwtDa3Pdu;
+import com.sierrawireless.airvantage.tech.awtda3codec.dto.AwtDa3QuasiPeriodicVector;
 
 public class Handler extends IoHandlerAdapter {
 
@@ -66,16 +71,44 @@ public class Handler extends IoHandlerAdapter {
                 ListDecoder out = new ListDecoder();
                 decoder.decodeAndAccumulate(ByteBuffer.wrap(env.getPayload()), out);
                 List<Object> decoded = out.list;
-                List<Data> data = new ArrayList<Data>(decoded.size());
+                List<Message> data = new ArrayList<Message>(decoded.size());
+
                 for (Object o : decoded) {
                     if (o instanceof AwtDa3Message) {
                         AwtDa3Message msg = (AwtDa3Message) o;
-                        data.add(new Data(msg.getPath(), msg.getBody()));
+
+                        // uncompress list of values (quasicperiodic vector, etc..)
+                        Map<String, List<?>> bodyData = new HashMap<String, List<?>>();
+                        for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+                            bodyData.put(e.getKey().toString(), extractList(e.getValue()));
+                        }
+                        data.add(new Message(msg.getPath(), bodyData));
                     }
                 }
                 store.enqueueData(comId, System.nanoTime(), data);
             }
         }
+    }
+
+    /**
+     * Extract a list of value following the M3DA convention : extract QuasiPeriodic and Delta vectors. Convert non list
+     * item to list with one element
+     */
+    private List<?> extractList(final Object v) {
+        List<?> valueList;
+        if (v instanceof List) {
+            valueList = (List<?>) v;
+        } else if (v instanceof AwtDa3DeltasVector) {
+            valueList = ((AwtDa3DeltasVector) v).asFlatList();
+        } else if (v instanceof AwtDa3QuasiPeriodicVector) {
+            valueList = ((AwtDa3QuasiPeriodicVector) v).asFlatList();
+        } else if (v instanceof ByteBuffer) {
+            // as String (TODO : handle binary data)
+            valueList = Collections.singletonList(new String(((ByteBuffer) v).array(), UTF_8));
+        } else {
+            valueList = Collections.singletonList(v);
+        }
+        return valueList;
     }
 
     /**
