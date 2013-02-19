@@ -1,7 +1,8 @@
 package m3da.server;
 
 import m3da.server.servlet.GetDataServlet;
-import m3da.server.store.MapDbStoreService;
+import m3da.server.store.InMemoryStoreService;
+import m3da.server.store.StoreService;
 import m3da.server.tcp.M3daTcpServer;
 
 import org.eclipse.jetty.server.Server;
@@ -22,8 +23,6 @@ public class Main {
     public static void main(String[] args) throws Exception {
         String webappDirLocation = "src/main/webapp/";
 
-        // The port that we should run on can be set into an environment variable
-        // Look for that variable and default to 8080 if it isn't there.
         String webPort = System.getenv("PORT");
         if (webPort == null || webPort.isEmpty()) {
             webPort = "8080";
@@ -35,15 +34,9 @@ public class Main {
         root.setContextPath("/");
         root.setDescriptor(webappDirLocation + "/WEB-INF/web.xml");
         root.setResourceBase(webappDirLocation);
-
-        // Parent loader priority is a class loader setting that Jetty accepts.
-        // By default Jetty will behave like most web containers in that it will
-        // allow your application to replace non-server libraries that are part of the
-        // container. Setting parent loader priority to true changes this behavior.
-        // Read more here: http://wiki.eclipse.org/Jetty/Reference/Jetty_Classloading
         root.setParentLoaderPriority(true);
 
-        MapDbStoreService service = new MapDbStoreService();
+        StoreService service = new InMemoryStoreService(10);
 
         ServletHolder servletHolder = new ServletHolder(new GetDataServlet(service));
         root.addServlet(servletHolder, "/data/*");
@@ -53,16 +46,6 @@ public class Main {
         server.start();
 
         service.start();
-        /*
-         * service.enqueueData("sys", System.currentTimeMillis(), new ArrayList<Data>());
-         * service.enqueueData("systemId", System.nanoTime(), Collections.singletonList(new Data("A", null)));
-         * service.enqueueData("systemId", System.nanoTime(), Collections.singletonList(new Data("B", null)));
-         * service.enqueueData("systemId", System.nanoTime(), Collections.singletonList(new Data("C", null)));
-         * service.enqueueData("systemId2", System.nanoTime(), new ArrayList<Data>()); service.enqueueData("systemId2",
-         * System.nanoTime(), new ArrayList<Data>()); System.err.println("pop1 " + service.popData("systemId"));
-         * System.err.println("pop2 " + service.popData("systemId")); System.err.println("pop3 " +
-         * service.popData("systemId")); System.err.println("pop4 " + service.popData("systemId"));
-         */
 
         M3daTcpServer tcpServer = new M3daTcpServer(2, 30, 44900, 4, 8, service);
         tcpServer.start();

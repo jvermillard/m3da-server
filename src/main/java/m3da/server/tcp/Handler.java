@@ -85,7 +85,7 @@ public class Handler extends IoHandlerAdapter {
                         data.add(new Message(msg.getPath(), bodyData));
                     }
                 }
-                store.enqueueData(comId, System.nanoTime(), data);
+                store.enqueueReceivedData(comId, System.nanoTime(), data);
             }
         }
     }

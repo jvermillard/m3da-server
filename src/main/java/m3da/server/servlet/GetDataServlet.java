@@ -2,6 +2,7 @@ package m3da.server.servlet;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -35,13 +36,14 @@ public class GetDataServlet extends HttpServlet {
 
         system = system.substring(1);
         LOG.info("system " + system);
-        List<Message> data;
-        while ((data = store.popData(system)) != null) {
-            resp.getWriter().write("data: ");
-            for (Message d : data) {
+        Map<Long, List<Message>> data = store.lastReceivedData(system);
+        for (Map.Entry<Long, List<Message>> e : data.entrySet()) {
+            resp.getWriter().write("received at : " + e.getKey());
+            for (Message d : e.getValue()) {
                 LOG.info("data: " + d);
                 resp.getWriter().write(d + "\n");
             }
+
         }
     }
 }
