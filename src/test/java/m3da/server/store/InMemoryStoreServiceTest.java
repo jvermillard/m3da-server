@@ -10,11 +10,12 @@
  ******************************************************************************/
 package m3da.server.store;
 
+import static org.junit.Assert.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -39,10 +40,10 @@ public class InMemoryStoreServiceTest {
 
 		// verify
 		Map<Long, List<Message>> data = service.lastReceivedData("clientId");
-		Assert.assertEquals(3, data.size());
-		Assert.assertEquals(msgA, data.get(1L));
-		Assert.assertEquals(msgB, data.get(2L));
-		Assert.assertEquals(msgC, data.get(3L));
+		assertEquals(3, data.size());
+		assertEquals(msgA, data.get(1L));
+		assertEquals(msgB, data.get(2L));
+		assertEquals(msgC, data.get(3L));
 
 	}
 
@@ -63,11 +64,32 @@ public class InMemoryStoreServiceTest {
 
 		// verify
 		Map<Long, List<Message>> data = service.lastReceivedData("clientId");
-		Assert.assertEquals(3, data.size());
-		Assert.assertEquals(msgB, data.get(2L));
-		Assert.assertEquals(msgC, data.get(3L));
-		Assert.assertEquals(msgD, data.get(4L));
-
+		assertEquals(3, data.size());
+		assertEquals(msgB, data.get(2L));
+		assertEquals(msgC, data.get(3L));
+		assertEquals(msgD, data.get(4L));
 	}
 
+	@Test
+	public void push_some_message_and_gather_them_in_order() {
+
+		// prepare
+		List<Message> msgs = new ArrayList<Message>(3);
+
+		msgs.add(new Message("path1", null));
+		msgs.add(new Message("path2", null));
+		msgs.add(new Message("path3", null));
+
+		// run
+		service.enqueueDataToSend("clientId", msgs);
+
+		// verify
+
+		assertNull(service.popDataToSend("unknownClient"));
+		List<Message> popedMsgs = service.popDataToSend("clientId");
+		assertEquals(3, popedMsgs.size());
+		assertEquals("path1", popedMsgs.get(0).getPath());
+		assertEquals("path2", popedMsgs.get(1).getPath());
+		assertEquals("path3", popedMsgs.get(2).getPath());
+	}
 }

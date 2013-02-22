@@ -40,6 +40,25 @@ public interface StoreService {
 	public Map<Long, List<Message>> lastReceivedData(String clientId);
 
 	/**
+	 * add some data to be sent to the client, as soon it reconnect to the server.
+	 * 
+	 * @param clientId
+	 *            the identifier of the client targeted by those data
+	 * @param newData
+	 *            the list of data to be sent
+	 */
+	public void enqueueDataToSend(String clientId, List<Message> newData);
+
+	/**
+	 * Get and remove the data to be sent to a client.
+	 * 
+	 * @param clientId
+	 *            the identifier of the client
+	 * @return the data to be sent, or <code>null</code>
+	 */
+	public List<Message> popDataToSend(String clientId);
+
+	/**
 	 * start the service
 	 */
 	public void start();

@@ -18,10 +18,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import m3da.server.codec.M3daCodecService;
 import m3da.server.codec.BysantDecoder;
+import m3da.server.codec.BysantEncoder;
 import m3da.server.codec.DecoderOutput;
 import m3da.server.codec.HeaderKey;
+import m3da.server.codec.M3daCodecService;
 import m3da.server.codec.dto.M3daDeltasVector;
 import m3da.server.codec.dto.M3daEnvelope;
 import m3da.server.codec.dto.M3daMessage;
@@ -38,6 +39,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+/**
+ * I/O logic handler for the M3DA protocol : store received data and push pending data for this client.
+ */
 public class Handler extends IoHandlerAdapter {
 
 	private static final Logger LOG = LoggerFactory.getLogger(Handler.class);
@@ -60,6 +64,7 @@ public class Handler extends IoHandlerAdapter {
 	public void sessionOpened(IoSession session) throws Exception {
 
 		session.setAttribute("decoder", codec.createBodyDecoder());
+		session.setAttribute("encoder", codec.createBodyEncoder());
 	}
 
 	@Override
@@ -95,6 +100,22 @@ public class Handler extends IoHandlerAdapter {
 					}
 				}
 				store.enqueueReceivedData(comId, System.nanoTime(), data);
+			}
+
+			// do we have pending data for this client ?
+			List<Message> toSend = store.popDataToSend(comId);
+			if (toSend != null && toSend.size() > 0) {
+				BysantEncoder encoder = (BysantEncoder) session.getAttribute("encoder");
+
+				// convert to the encoder DTO
+				M3daPdu[] pdus = new M3daPdu[toSend.size()];
+				for (int i = 0; i < pdus.length; i++) {
+					pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, new HashMap<Object, Object>(toSend.get(i).getData()));
+				}
+				// encode the message to be sent
+				byte[] binaryPayload = encoder.encode(pdus).array();
+				// enqueue for socket writing
+				session.write(new M3daEnvelope(new HashMap<Object, Object>(), binaryPayload, new HashMap<Object, Object>()));
 			}
 		}
 	}

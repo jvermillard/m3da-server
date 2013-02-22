@@ -38,9 +38,9 @@ import com.google.common.collect.Maps;
 /**
  * Unit test for {@link EnvelopeDecoderImpl}
  */
-public class AwtDa3DecoderImplTest {
+public class M3daDecoderImplTest {
 
-	private static final Logger LOG = LoggerFactory.getLogger(AwtDa3DecoderImplTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(M3daDecoderImplTest.class);
 
 	private ByteBuffer toBB(final String s) {
 		try {

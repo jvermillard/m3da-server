@@ -10,13 +10,15 @@
  ******************************************************************************/
 package m3da.server.store;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Queue;
+import java.util.TreeMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,47 +44,60 @@ public class InMemoryStoreService implements StoreService {
 		this.maxMessage = maxMessage;
 	}
 
-	private Map<String /* client id */, Map<Long /* reception nanos date */, List<Message>>> receivedData = new ConcurrentHashMap<String, Map<Long, List<Message>>>();
+	private Map<String /* client id */, Map<Long /* reception nanos date */, List<Message>>> receivedData = new HashMap<String, Map<Long, List<Message>>>();
 
-	private Map<String /* client id */, AtomicInteger /* number of waiting data per client */> receivedDataCounter = new ConcurrentHashMap<String, AtomicInteger>();
+	private Map<String /* client id */, Queue<Message> /* message waiting to be sent */> dataToSend = new HashMap<String, Queue<Message>>();
 
 	@Override
-	public void enqueueReceivedData(String clientId, long receptionInNanoSec, List<Message> newData) {
+	public synchronized void enqueueReceivedData(String clientId, long receptionInNanoSec, List<Message> newData) {
 		LOG.debug("enqueueReceivedData( clientId = {}, receptionInnanoSec = {}, newData = {} )", clientId, receptionInNanoSec, newData);
 
-		Map<Long, List<Message>> msgQueue;
-		synchronized (this) {
-			msgQueue = receivedData.get(clientId);
-			if (msgQueue == null) {
-				/** we use the SkipListMap because we need to remove the element in natural key order */
-				msgQueue = new ConcurrentSkipListMap<Long, List<Message>>();
-				receivedData.put(clientId, msgQueue);
-				// initialize data counter
-				receivedDataCounter.put(clientId, new AtomicInteger(0));
-			}
+		Map<Long, List<Message>> msgQueue = receivedData.get(clientId);
+		if (msgQueue == null) {
+			/** we use the TreeMap because we need to remove the element in natural key order */
+			msgQueue = new TreeMap<Long, List<Message>>();
+			receivedData.put(clientId, msgQueue);
 		}
 
 		msgQueue.put(receptionInNanoSec, newData);
 
 		// check if we have too much received data
-		AtomicInteger counter = receivedDataCounter.get(clientId);
-		int delta = counter.incrementAndGet() - maxMessage;
-		if (delta > 0) {
+		Iterator<Entry<Long, List<Message>>> iterator = msgQueue.entrySet().iterator();
+		while (msgQueue.size() - maxMessage > 0 && iterator.next() != null) {
 			// we should purge some message
-			Iterator<Entry<Long, List<Message>>> iterator = msgQueue.entrySet().iterator();
-			int size;
-			do {
-				iterator.next();
-				iterator.remove();
-				size = counter.decrementAndGet();
-			} while (size > maxMessage);
+			iterator.remove();
 		}
 	}
 
 	@Override
-	public Map<Long, List<Message>> lastReceivedData(String clientId) {
+	public synchronized Map<Long, List<Message>> lastReceivedData(String clientId) {
 		LOG.debug("lastReceivedData( clientid = {} )", clientId);
 		return receivedData.get(clientId);
+	}
+
+	@Override
+	public synchronized void enqueueDataToSend(String clientId, List<Message> newData) {
+		LOG.debug("enqueueDataToSend( clientid = {} , newData = {} )", clientId, newData);
+		Queue<Message> queue = dataToSend.get(clientId);
+		if (queue == null) {
+			queue = new LinkedBlockingQueue<Message>();
+			dataToSend.put(clientId, queue);
+		}
+		queue.addAll(newData);
+	}
+
+	@Override
+	public synchronized List<Message> popDataToSend(String clientId) {
+		LOG.debug("popDataToSend( clientid = {} )", clientId);
+		Queue<Message> queue = dataToSend.get(clientId);
+		if (queue == null) {
+			return null;
+		}
+
+		// empty the queue and send to the caller
+		List<Message> result = new ArrayList<Message>(queue);
+		queue.clear();
+		return result;
 	}
 
 	@Override
