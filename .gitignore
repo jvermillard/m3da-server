@@ -4,3 +4,11 @@
 *.jar
 *.war
 *.ear
+
+# eclipse files (generate them using "mvn eclipse:eclipse"
+
+.classpath
+.project
+
+# maven build directory
+target
