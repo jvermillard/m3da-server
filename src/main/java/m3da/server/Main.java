@@ -10,11 +10,13 @@
  ******************************************************************************/
 package m3da.server;
 
+import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.servlet.GetDataServlet;
 import m3da.server.store.InMemoryStoreService;
 import m3da.server.store.StoreService;
 import m3da.server.tcp.M3daTcpServer;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -47,8 +49,10 @@ public class Main {
 		root.setParentLoaderPriority(true);
 
 		StoreService service = new InMemoryStoreService(10);
+		Store2JsonDataMapper store2jsonMapper = new Store2JsonDataMapper();
+		ObjectMapper jacksonMapper = new ObjectMapper();
 
-		ServletHolder servletHolder = new ServletHolder(new GetDataServlet(service));
+		ServletHolder servletHolder = new ServletHolder(new GetDataServlet(service, store2jsonMapper, jacksonMapper));
 		root.addServlet(servletHolder, "/data/*");
 
 		server.setHandler(root);

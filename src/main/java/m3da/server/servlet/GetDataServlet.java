@@ -19,9 +19,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import m3da.server.api.json.JSystemData;
+import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +35,14 @@ public class GetDataServlet extends HttpServlet {
 
 	private StoreService store;
 
-	public GetDataServlet(StoreService store) {
+	private Store2JsonDataMapper store2JsonMapper;
+
+	private ObjectMapper jacksonMapper;
+
+	public GetDataServlet(StoreService store, Store2JsonDataMapper store2JsonMapper, ObjectMapper jasksonMapper) {
 		this.store = store;
+		this.store2JsonMapper = store2JsonMapper;
+		this.jacksonMapper = jasksonMapper;
 	}
 
 	@Override
@@ -46,14 +55,12 @@ public class GetDataServlet extends HttpServlet {
 
 		system = system.substring(1);
 		LOG.info("system " + system);
-		Map<Long, List<Message>> data = store.lastReceivedData(system);
-		for (Map.Entry<Long, List<Message>> e : data.entrySet()) {
-			resp.getWriter().write("received at : " + e.getKey());
-			for (Message d : e.getValue()) {
-				LOG.info("data: " + d);
-				resp.getWriter().write(d + "\n");
-			}
 
-		}
+		// TODO(pht) handle null or no system
+
+		Map<Long, List<Message>> data = store.lastReceivedData(system);
+		Map<String, List<JSystemData>> json = this.store2JsonMapper.mapReceivedData(data);
+
+		this.jacksonMapper.writeValue(resp.getWriter(), json);
 	}
 }

@@ -31,7 +31,7 @@ public interface StoreService {
 	public void enqueueReceivedData(String clientId, long receptionInNanoSec, List<Message> newData);
 
 	/**
-	 * Get the last received data for a gven client
+	 * Get the last received data for a given client
 	 * 
 	 * @param clientId
 	 *            the client unique identifier
