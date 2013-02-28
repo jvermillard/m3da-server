@@ -24,14 +24,15 @@ import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("serial")
-public class GetDataServlet extends HttpServlet {
+public class DataServlet extends HttpServlet {
 
-	private static final Logger LOG = LoggerFactory.getLogger(GetDataServlet.class);
+	private static final Logger LOG = LoggerFactory.getLogger(DataServlet.class);
 
 	private StoreService store;
 
@@ -39,7 +40,7 @@ public class GetDataServlet extends HttpServlet {
 
 	private ObjectMapper jacksonMapper;
 
-	public GetDataServlet(StoreService store, Store2JsonDataMapper store2JsonMapper, ObjectMapper jasksonMapper) {
+	public DataServlet(StoreService store, Store2JsonDataMapper store2JsonMapper, ObjectMapper jasksonMapper) {
 		this.store = store;
 		this.store2JsonMapper = store2JsonMapper;
 		this.jacksonMapper = jasksonMapper;
@@ -56,11 +57,23 @@ public class GetDataServlet extends HttpServlet {
 		system = system.substring(1);
 		LOG.info("system " + system);
 
-		// TODO(pht) handle null or no system
-
 		Map<Long, List<Message>> data = store.lastReceivedData(system);
 		Map<String, List<JSystemData>> json = this.store2JsonMapper.mapReceivedData(data);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+		String system = req.getPathInfo();
+		if (system == null) {
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
+			return;
+		}
+
+		JsonNode readTree = this.jacksonMapper.readTree(req.getInputStream());
+		System.out.println(readTree);
+
 	}
 }

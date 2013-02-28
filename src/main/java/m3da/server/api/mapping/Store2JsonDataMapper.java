@@ -10,6 +10,8 @@
  *******************************************************************************/
 package m3da.server.api.mapping;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,7 +68,8 @@ public class Store2JsonDataMapper {
 
 					JSystemData jSystemData = new JSystemData();
 					jSystemData.setTimestamp(timestampInSeconds);
-					jSystemData.setValue(received.getValue());
+
+					jSystemData.setValue(this.transformStrings(received.getValue()));
 
 					resData.add(jSystemData);
 
@@ -98,6 +101,28 @@ public class Store2JsonDataMapper {
 			}
 		};
 		Collections.sort(jSystemDataList, comp);
+	}
+
+	/**
+	 * "Strings" from m3da are actually ByteBuffers ; we will assume all of them are utf-8 string.
+	 * 
+	 * @param values
+	 * @return the list of values, with ByteBuffers converted to utf-8 strings
+	 */
+	private List<Object> transformStrings(List<?> values) {
+
+		List<Object> res = new ArrayList<Object>();
+
+		for (Object o : values) {
+			if (o instanceof ByteBuffer) {
+				String str = new String(((ByteBuffer) o).array(), Charset.forName("utf-8"));
+				res.add(str);
+			} else {
+				res.add(o);
+			}
+		}
+
+		return res;
 	}
 
 }

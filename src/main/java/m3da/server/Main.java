@@ -11,7 +11,7 @@
 package m3da.server;
 
 import m3da.server.api.mapping.Store2JsonDataMapper;
-import m3da.server.servlet.GetDataServlet;
+import m3da.server.servlet.DataServlet;
 import m3da.server.store.InMemoryStoreService;
 import m3da.server.store.StoreService;
 import m3da.server.tcp.M3daTcpServer;
@@ -52,7 +52,7 @@ public class Main {
 		Store2JsonDataMapper store2jsonMapper = new Store2JsonDataMapper();
 		ObjectMapper jacksonMapper = new ObjectMapper();
 
-		ServletHolder servletHolder = new ServletHolder(new GetDataServlet(service, store2jsonMapper, jacksonMapper));
+		ServletHolder servletHolder = new ServletHolder(new DataServlet(service, store2jsonMapper, jacksonMapper));
 		root.addServlet(servletHolder, "/data/*");
 
 		server.setHandler(root);

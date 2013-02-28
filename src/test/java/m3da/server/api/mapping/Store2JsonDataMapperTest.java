@@ -12,6 +12,7 @@ package m3da.server.api.mapping;
 
 import static org.junit.Assert.assertEquals;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +24,7 @@ import m3da.server.store.Message;
 import org.junit.Before;
 import org.junit.Test;
 
-public class Store2JsonMapperTest {
+public class Store2JsonDataMapperTest {
 
 	Store2JsonDataMapper mapper;
 
@@ -48,6 +49,25 @@ public class Store2JsonMapperTest {
 		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
 		assertEquals(1, bar.getValue().size());
 		assertEquals(42, bar.getValue().get(0));
+		assertEquals(String.valueOf(now), bar.getTimestamp());
+
+	}
+
+	@Test
+	public void converts_byte_buffers_to_utf8_string() {
+
+		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
+		Map<String, List<?>> data = new HashMap<String, List<?>>();
+		data.put("bar", Arrays.asList(ByteBuffer.wrap("toto".getBytes())));
+
+		long now = System.currentTimeMillis();
+		Long nanoseconds = now * 1000;
+		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
+
+		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(lastReceived);
+		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
+		assertEquals(1, bar.getValue().size());
+		assertEquals("toto", bar.getValue().get(0));
 		assertEquals(String.valueOf(now), bar.getTimestamp());
 
 	}
